@@ -2,7 +2,7 @@ from fastapi import FastAPI, File, UploadFile
 from fastapi.responses import JSONResponse
 import shutil
 import os
-from main import run_eda
+#from main import run_eda
 
 app = FastAPI()
 UPLOAD_DIR = "uploads"
