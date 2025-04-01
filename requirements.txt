@@ -6,3 +6,13 @@ seaborn
 jinja2
 scikit-learn
 python-multipart
+langgraph
+langgraph-prebuilt
+langgraph-sdk
+langgraph-checkpoint-sqlite
+langsmith
+langchain-community
+langchain-core
+langchain-openai
+notebook
+langgraph-cli[inmem]

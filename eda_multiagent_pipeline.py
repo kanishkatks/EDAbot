@@ -3,41 +3,26 @@ import os
 import json
 import matplotlib.pyplot as plt
 import seaborn as sns
-from langchain.schema import Document
-from langgraph.graph import StateGraph
-from langchain.tools import tool
-from langchain_core.pydantic_v1 import BaseModel
-from typing import Dict, Any
+from langgraph.graph import StateGraph, END
+from pydantic import BaseModel, Field, ConfigDict
+from typing import Dict, Any, List, Optional, Callable
 
 # Ensure static directory exists for saving plots
 os.makedirs("static", exist_ok=True)
 
 ### 1. Define State Model ###
 class EDAState(BaseModel):
-    data: pd.DataFrame
-    validation: Dict[str, Any] = {}
-    summary: Dict[str, Any] = {}
-    anomalies: Dict[str, Any] = {}
-    visualizations: Dict[str, Any] = {}
+    """State for the EDA pipeline."""
+    model_config = ConfigDict(arbitrary_types_allowed=True)
+    
+    data: Any = Field(description="The dataframe to analyze")
+    validation: Dict[str, Any] = Field(default_factory=dict)
+    summary: Dict[str, Any] = Field(default_factory=dict)
+    anomalies: Dict[str, Any] = Field(default_factory=dict)
+    visualizations: Dict[str, Any] = Field(default_factory=dict)
+    report: str = Field(default="")
 
-### 2. Define Agents (Tools) ###
-
-@tool
-def load_data(file_path: str) -> EDAState:
-    """Loads CSV or JSON file into a Pandas DataFrame."""
-    try:
-        if file_path.endswith(".csv"):
-            df = pd.read_csv(file_path)
-        elif file_path.endswith(".json"):
-            df = pd.read_json(file_path)
-        else:
-            raise ValueError("Unsupported file format. Use CSV or JSON.")
-
-        return EDAState(data=df)
-    except Exception as e:
-        raise ValueError(f"Failed to load data: {str(e)}")
-
-@tool
+### 2. Define Functions for Each Node ###
 def validate_data(state: EDAState) -> EDAState:
     """Checks for missing values and duplicate rows."""
     df = state.data
@@ -47,14 +32,12 @@ def validate_data(state: EDAState) -> EDAState:
     }
     return state
 
-@tool
 def generate_summary(state: EDAState) -> EDAState:
     """Computes basic descriptive statistics."""
     df = state.data
     state.summary = df.describe().to_dict()
     return state
 
-@tool
 def create_visualizations(state: EDAState) -> EDAState:
     """Creates visualizations and saves them as images."""
     df = state.data
@@ -97,7 +80,6 @@ def create_visualizations(state: EDAState) -> EDAState:
     state.visualizations = {"plots": plot_paths}
     return state
 
-@tool
 def detect_anomalies(state: EDAState) -> EDAState:
     """Detects outliers using IQR method."""
     df = state.data
@@ -113,41 +95,73 @@ def detect_anomalies(state: EDAState) -> EDAState:
     state.anomalies = anomalies
     return state
 
-@tool
-def generate_report(state: EDAState) -> Dict[str, Any]:
+def generate_report(state: EDAState) -> EDAState:
     """Generates final EDA report combining all insights."""
-    return {
-        "validation": state.validation,
-        "summary": state.summary,
-        "anomalies": state.anomalies,
-        "visualizations": state.visualizations,
-    }
+    report = f"""
+    Validation: {state.validation}
+    Summary: {state.summary}
+    Anomalies: {state.anomalies}
+    Visualizations: {state.visualizations}
+    """
+    state.report = report
+    return state
 
 ### 3. Build Multi-Agent Graph ###
-eda_graph = StateGraph(EDAState)
-
-eda_graph.add_node("load_data", load_data)
-eda_graph.add_node("validate", validate_data)
-eda_graph.add_node("summary", generate_summary)
-eda_graph.add_node("visualizations", create_visualizations)
-eda_graph.add_node("anomalies", detect_anomalies)
-eda_graph.add_node("report", generate_report)
-
-# Define workflow sequence
-eda_graph.add_edge("load_data", "validate")
-eda_graph.add_edge("validate", "summary")
-eda_graph.add_edge("summary", "visualizations")
-eda_graph.add_edge("visualizations", "anomalies")
-eda_graph.add_edge("anomalies", "report")
-
-# Set Entry and Exit points
-eda_graph.set_entry_point("load_data")
-eda_graph.add_conditional_edges("report", lambda state: None)  # End processing
-
-eda_executor = eda_graph.compile()
+def build_graph():
+    """Build and return the EDA graph."""
+    
+    # Build graph
+    workflow = StateGraph(EDAState)
+    
+    workflow.add_node("validate_data", validate_data)
+    workflow.add_node("generate_summary", generate_summary)
+    workflow.add_node("create_visualizations", create_visualizations)
+    workflow.add_node("generate_anomalies", detect_anomalies)
+    workflow.add_node("generate_report", generate_report)
+    
+    # Define edges
+    workflow.add_edge("validate_data", "generate_summary")
+    workflow.add_edge("generate_summary", "create_visualizations")
+    workflow.add_edge("create_visualizations", "generate_anomalies")
+    workflow.add_edge("generate_anomalies", "generate_report")
+    workflow.add_edge("generate_report", END)
+    
+    # Add state updates
+    workflow.set_entry_point("validate_data")
+    
+    return workflow.compile()
 
 ### 4. Function to Run the Multi-Agent EDA ###
 def run_eda(file_path):
     """Runs EDA using the multi-agent workflow."""
-    initial_state = eda_executor.invoke(file_path)
-    return generate_report(initial_state)
+    try:
+        # Load data directly into DataFrame
+        if file_path.endswith(".csv"):
+            df = pd.read_csv(file_path)
+        elif file_path.endswith(".json"):
+            df = pd.read_json(file_path)
+        else:
+            raise ValueError("Unsupported file format. Use CSV or JSON.")
+        
+        # Create initial state
+        initial_state = EDAState(
+            data=df,
+            validation={},
+            summary={},
+            anomalies={},
+            visualizations={},
+            report=""
+        )
+        
+        # Get the compiled workflow
+        eda_executor = build_graph()
+        
+        # Run the workflow
+        final_state = eda_executor.invoke(initial_state)
+        
+        # Return the report
+        return final_state["report"]
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return {"error": str(e)}
