@@ -3,6 +3,7 @@ from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 import shutil
 import os
+import logging
 from eda_multiagent_pipeline import run_eda
 
 app = FastAPI()
@@ -20,17 +21,34 @@ app.add_middleware(
 UPLOAD_DIR = "uploads"
 os.makedirs(UPLOAD_DIR, exist_ok=True)
 
+# Set up logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
 @app.post("/upload/")
 async def upload_file(file: UploadFile = File(...)):
     """Upload a file and run EDA on it."""
     try:
+        # Validate file type
+        if not file.filename.endswith(('.csv', '.json')):
+            return JSONResponse(status_code=400, content={"error": "Invalid file type. Only CSV and JSON are supported."})
+        
         # Save the uploaded file
         file_path = os.path.join(UPLOAD_DIR, file.filename)
+        if os.path.exists(file_path):
+            base, ext = os.path.splitext(file.filename)
+            file_path = os.path.join(UPLOAD_DIR, f"{base}_copy{ext}")
+        
         with open(file_path, "wb") as buffer:
             shutil.copyfileobj(file.file, buffer)
         
+        logger.info(f"File uploaded: {file.filename}")
+        
         # Run EDA on the file
         result = run_eda(file_path)
+        
+        # Optionally delete file after processing
+        os.remove(file_path)
         
         # Return the result
         return JSONResponse(content=result)
@@ -39,7 +57,7 @@ async def upload_file(file: UploadFile = File(...)):
         traceback.print_exc()
         return JSONResponse(
             status_code=500,
-            content={"error": str(e)}
+            content={"error_code": "EDA_PIPELINE_ERROR", "message": str(e), "stack_trace": traceback.format_exc()}
         )
 
 @app.get("/")
