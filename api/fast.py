@@ -4,7 +4,7 @@ from fastapi.middleware.cors import CORSMiddleware
 import shutil
 import os
 import logging
-from eda_multiagent_pipeline import run_eda
+from edabot.eda_multiagent_pipeline import run_eda
 
 app = FastAPI()
 
