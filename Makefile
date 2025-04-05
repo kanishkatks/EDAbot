@@ -61,11 +61,57 @@ reset_model_folders:
 #          GCP         #
 #======================#
 
-gcloud-set-project:
-	gcloud config set project $(GCP_PROJECT)
+# gcloud-set-project:
+# 	gcloud config set project $(GCP_PROJECT)
 
-gcloud-load-raw-data:
-	python -c 'from anomguard.interface.main import load_raw_data; load_raw_data()'
+# gcloud-load-raw-data:
+# 	python -c 'from anomguard.interface.main import load_raw_data; load_raw_data()'
+
+#======================#
+#          AWS         #
+#======================#
+aws_config:
+	 aws ecr get-login-password \
+	 --region $AWS_REGION \
+	  docker login --username\
+	  AWS --password-stdin $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com
+
+aws_ec2_config:
+	ssh -t -i eda-tool.pem ubuntu@34.240.4.98
+
+
+# sudo yum update -y
+# sudo yum install -y docker
+# sudo systemctl start docker
+# sudo usermod -aG docker ec2-user
+
+# sudo apt update
+# sudo apt install -y docker.io
+# sudo systemctl start docker
+# sudo systemctl enable docker
+# sudo usermod -aG docker ubuntu
+
+#
+# Install unzip:
+# sudo apt update && sudo apt install unzip
+
+# Download AWS CLI v2:
+# curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
+
+# Extract the archive:
+# unzip awscliv2.zip
+
+# Run the installer:
+# sudo ./aws/install
+
+# Verify:
+# aws --version
+
+# docker pull 169158972420.dkr.ecr.eu-west-1.amazonaws.com/eda-fastapi-app:dev
+
+# docker run -d -p 8000:8000 169158972420.dkr.ecr.eu-west-1.amazonaws.com/eda-fastapi-app:dev
+
+#169158972420.dkr.ecr.eu-west-1.amazonaws.com/eda-fastapi-app:dev
 
 #======================#
 #         Docker       #
@@ -92,8 +138,9 @@ docker_run_local_interactively:
 		bash
 
 # Cloud images - using architecture compatible with cloud, i.e. linux/amd64
-
-DOCKER_IMAGE_PATH := $(GCP_REGION)-docker.pkg.dev/$(GCP_PROJECT)/$(DOCKER_REPO_NAME)/$(DOCKER_IMAGE_NAME)
+# 169158972420.dkr.ecr.eu-west-1.amazonaws.com/eda-fastapi-app
+# DOCKER_IMAGE_PATH := $(AWS_REGION)-docker.pkg.dev/$(GCP_PROJECT)/$(DOCKER_REPO_NAME)/$(DOCKER_IMAGE_NAME)
+# docker tag eda-fastapi-app:dev $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/eda-fastapi-app:dev
 
 docker_build:
 	docker build \
@@ -137,6 +184,8 @@ docker_create_repo:
 
 docker_push:
 	docker push $(DOCKER_IMAGE_PATH):prod
+# docker push $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/eda-fastapi-app:dev
+
 
 docker_deploy:
 	gcloud run deploy \
@@ -144,3 +193,5 @@ docker_deploy:
 		--memory $(GAR_MEMORY) \
 		--region $(GCP_REGION) \
 		--env-vars-file .env.yaml
+
+
