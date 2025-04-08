@@ -16,7 +16,7 @@ if os.path.isfile('requirements_dev.txt'):
 
 
 setup(name='edabot',
-      version="0.0.0",
+      version="1.0.0",
       description="multiagent bot for exploratory data analysis (EDA)",
       packages=find_packages(),
       install_requires=requirements,
