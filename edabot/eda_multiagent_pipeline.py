@@ -7,7 +7,6 @@ import seaborn as sns
 from langgraph.graph import StateGraph, END
 from pydantic import BaseModel, Field, ConfigDict
 from typing import Dict, Any, List, Optional, Callable
-from pandasai.llm.openai import OpenAI
 import statsmodels.api as sm
 from openai import OpenAI
 import re
@@ -21,15 +20,16 @@ os.makedirs("static", exist_ok=True)
 class EDAState(BaseModel):
     """State for the EDA pipeline."""
     model_config = ConfigDict(arbitrary_types_allowed=True)
-    
+
     data: Any = Field(description="The dataframe to analyze")
     validation: Dict[str, Any] = Field(default_factory=dict)
+    info: Dict[str, Any] = Field(default_factory=dict)
     summary: Dict[str, Any] = Field(default_factory=dict)
     anomalies: Dict[str, Any] = Field(default_factory=dict)
     visualizations: Dict[str, Any] = Field(default_factory=dict)
     report: Dict[str, Any] = Field(default_factory=dict)
-    narrative: str = Field(default="") 
-    
+    narrative: str = Field(default="")
+
 
 ### 2. Define Functions for Each Node ###
 def validate_data(state: EDAState) -> EDAState:
@@ -43,10 +43,10 @@ def validate_data(state: EDAState) -> EDAState:
         if any(re.search(rf"\b{pattern}\b", col_lower) for pattern in date_column_patterns):
             if not np.issubdtype(df[col].dtype, np.datetime64):
                 suspicious_date_columns.append(col)
-                
+
     def detect_cyclical_numeric_with_fft(df: pd.DataFrame) -> list:
         cyclical_cols = []
-        
+
         for col in df.columns:
             if pd.api.types.is_numeric_dtype(df[col]):
                 # Apply Fourier transform
@@ -70,10 +70,21 @@ def validate_data(state: EDAState) -> EDAState:
         "duplicate_rows": df.duplicated().sum(),
         "suspicious_date_columns": suspicious_date_columns,
         "suspected_cyclical_columns": cyclical_cols
-        
+
     }
     return state
 
+def summary_info(state: EDAState) -> EDAState:
+    """Computes information about the dataframe."""
+    df = state.data
+    state.info = {
+        "rowCount": int(df.shape[0]),
+        "columnCount": int(df.shape[1]),
+        "columnNames": df.columns.tolist(),
+        # "columnTypes": df.dtypes.to_dict()
+    }
+
+    return state
 def generate_summary(state: EDAState) -> EDAState:
     """Computes basic descriptive statistics."""
     df = state.data
@@ -91,17 +102,17 @@ def create_visualizations(state: EDAState) -> EDAState:
 
     # Generate histograms
     for col in num_cols:
-        
+
         fig, ax = plt.subplots(1,3, figsize=(15,5))
         ax[0].set_title(f"Distribution of the {col}")
         sns.histplot(data = df, x = f"{col}", kde = True, ax = ax[0])
-        
+
         ax[1].set_title(f"Boxplot of the {col}")
         sns.boxplot(data = df, x = f"{col}",  ax = ax[1])
-        
+
         ax[2].set_title(f"Gaussianity of thet  {col}")
         sm.qqplot(df[f'{col}'], line = 's', ax = ax[2])
-                
+
         fig.suptitle(f"Distribution of {col}")
         plot_path = f"static/{col}_plots.png"
         plt.savefig(plot_path)
@@ -140,6 +151,7 @@ def generate_report(state: EDAState) -> EDAState:
     """Generates final EDA report combining all insights."""
     report = {
     "Validation": state.validation,
+    "Summary_info": state.info,
     "Summary": state.summary,
     "Anomalies": state.anomalies,
     "Narrative": state.narrative,
@@ -156,16 +168,17 @@ def generate_narrative(state: EDAState) -> EDAState:
     prompt = (
         "Based on the following EDA results, provide a concise narrative explanation in 300 words or less:\n\n"
         f"Validation: {state.validation}\n\n"
+        f"Summary_info: {state.info}\n\n"
         f"Summary: {state.summary}\n\n"
         f"Anomalies: {state.anomalies}\n\n"
-        
+
         "Explain any interesting trends, potential issues, and suggestions for further analysis."
     )
-    
+
     try:
         client = OpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
 
-        
+
         # Call the OpenAI Chat Completion API
         response = client.responses.create(
             model="gpt-3.5-turbo",
@@ -175,40 +188,43 @@ def generate_narrative(state: EDAState) -> EDAState:
             ],
            max_output_tokens= 300
         )
-        
+
         narrative_text = response.output_text
     except Exception as e:
         # In case of error, fall back to a basic explanation.
         narrative_text = f"An error occurred while generating narrative: {str(e)}"
-    
+
     state.narrative = narrative_text
     return state
 
 ### 3. Build Multi-Agent Graph ###
 def build_graph():
     """Build and return the EDA graph."""
-    
+
     # Build graph
     workflow = StateGraph(EDAState)
-    
+
     workflow.add_node("validate_data", validate_data)
     workflow.add_node("generate_summary", generate_summary)
     workflow.add_node("create_visualizations", create_visualizations)
     workflow.add_node("generate_anomalies", detect_anomalies)
     workflow.add_node("generate_report", generate_report)
     workflow.add_node("generate_narrative", generate_narrative)
-    
+    workflow.add_node("summary_info", summary_info)
+
+
     # Define edges
-    workflow.add_edge("validate_data", "generate_summary")
+    workflow.add_edge("validate_data", "summary_info")
+    workflow.add_edge("summary_info", "generate_summary")
     workflow.add_edge("generate_summary", "create_visualizations")
     workflow.add_edge("create_visualizations", "generate_anomalies")
     workflow.add_edge("generate_anomalies", "generate_narrative")
-    workflow.add_edge("generate_narrative", "generate_report")  
+    workflow.add_edge("generate_narrative", "generate_report")
     workflow.add_edge("generate_report", END)
-    
+
     # Add state updates
     workflow.set_entry_point("validate_data")
-    
+
     return workflow.compile()
 
 ### 4. Function to Run the Multi-Agent EDA ###
@@ -222,30 +238,29 @@ def run_eda(file_path):
             df = pd.read_json(file_path)
         else:
             raise ValueError("Unsupported file format. Use CSV or JSON.")
-        
+
         # Create initial state
         initial_state = EDAState(
             data=df,
             validation={},
+            info={},
             summary={},
             anomalies={},
             visualizations={},
             report={},
             narrative=""
         )
-        
+
         # Get the compiled workflow
         eda_executor = build_graph()
-        
+
         # Run the workflow
         final_state = eda_executor.invoke(initial_state)
-        
+
         # Return the report
         return final_state["report"]
-    
+
     except Exception as e:
         import traceback
         traceback.print_exc()
         return {"error": str(e)}
-
-
