@@ -1,98 +1,145 @@
-# EDA (Exploratory Data Analysis) Tool
+# 🧠 EDAtool — Multi-Agent LLM-Powered Exploratory Data Analysis
 
-Welcome to the **Exploratory Data Analysis Tool**! This project aims to simplify the process of data analysis by automating and visualizing essential statistics, making it easy for data scientists and analysts to quickly interpret their datasets. The tool uses a multi-agent system powered by LangGraph and integrates with a **React** frontend for a seamless user experience.
+From messy CSV files to clear, insightful reports — in minutes.  
+**EDAtool** is an intelligent, agentic pipeline that transforms raw datasets into dynamic EDA summaries using the power of LLMs and a multi-agent architecture.
 
-### Table of Contents
+## 🚀 Features
 
-1. [Project Overview](#project-overview)
-2. [Tech Stack](#tech-stack)
-3. [Frontend Development](#frontend-development)
-4. [Backend Development](#backend-development)
-5. [Key Features](#key-features)
-6. [Detailed Steps Taken](#detailed-steps-taken)
+- 🔍 **Automated EDA Pipeline**: Get detailed summary statistics, data validation, and visualizations from your datasets
+- 🤖 **Agentic Architecture**: Each stage of analysis is handled by dedicated agents (validation agent, visualization agent, narrative agent)
+- 📊 **Visual Reports**: Generate HTML + downloadable PDF reports with summary text and Plotly visualizations
+- 🌐 **React Frontend**: Intuitive UI to upload datasets, view EDA results, and chat with your data
 
----
+## 🧱 How It Works 
 
-## Project Overview
+```
+       ┌─────────────┐       ┌────────────┐       ┌──────────────┐
+       │ Upload CSV  │──────▶│   FastAPI  │──────▶│   LangGraph   │
+       └─────────────┘       └────┬───────┘       └────┬─────────┘
+                                  │                   ┌─▼────────────────┐
+                                  │                   │ Multi-Agent LLM  │
+                                  │                   ├──────────────────┤
+                                  ▼                   │ 🧹 ValidationAgent│
+                      🔍 Data Loaded                 │ 📈 StatsAgent     │
+                                                      │ 📊 VizAgent       │
+                                                      │ 🧠 NarrativeAgent │
+                                                      └───────┬───────────┘
+                                                              ▼
+                                            ◀──── LLM-Powered Report
+```
 
-This tool was built to automate the **Exploratory Data Analysis (EDA)** process. It allows users to upload CSV or JSON data, which is processed and analyzed by the backend (using FastAPI). The system generates both **static and interactive reports**, helping users identify key patterns, correlations, and potential issues in their datasets. The reports are accompanied by visualizations like histograms, boxplots, and QQ plots.
+## 📋 Project Overview
 
----
+EDAtool simplifies data analysis by automating and visualizing essential statistics, making it easy for data scientists and analysts to quickly interpret their datasets. The tool uses a multi-agent system powered by LangGraph and integrates with a React frontend for a seamless user experience.
 
-## Tech Stack
+Users can upload CSV, JSON, XLSX, or XLS files which are processed and analyzed by the backend. The system generates both static and interactive reports, helping users identify key patterns, correlations, and potential issues in their datasets. Reports include visualizations like histograms, boxplots, and QQ plots.
 
-- **Frontend**: React with TypeScript
+## 💻 Tech Stack
+
+- **Frontend**: React with TypeScript, Tailwind CSS, shadcn/ui, Lucide Icons
 - **Backend**: FastAPI, Python
 - **Visualization**: Pandas, Seaborn, Plotly, Matplotlib
-- **Reports**: Jinja2 (for report templates)
 - **Multi-Agent System**: LangGraph (to handle complex data analysis tasks)
 
----
+## 🌐 Frontend Development
 
-## Frontend Development
+The frontend is designed to be intuitive and easy to navigate, focusing on usability and visual appeal:
 
-The frontend was designed to be intuitive and easy to navigate, focusing on usability and visual appeal. The following features were implemented:
+### Key Features
 
-- **File Upload**: Users can upload CSV or JSON files for processing.
-- **Tabs for Numerical Variables**: Each tab corresponds to a numerical variable. The user can select any tab to view the associated plots.
-- **Plot Grid for Each Variable**: For each variable, the user is shown three types of plots—Histogram, Boxplot, and QQ Plot—arranged in a grid layout for easy comparison.
-- **Heatmap Tab**: A dedicated tab displays a correlation heatmap to help users visualize correlations across numerical variables.
+- **File Upload**: Users can upload CSV, JSON, XLSX, or XLS files for processing
+- **Tabbed Interface**: Clean, organized display of different data aspects
+- **Interactive Visualizations**: Each numerical variable has dedicated visualizations
+- **Responsive Design**: Built with Tailwind CSS for adaptability across devices
 
-The frontend is built using **React** with TypeScript to ensure scalability and type safety. We've also incorporated CSS frameworks to make the layout responsive and easy to maintain.
+### Frontend Workflow
 
----
+1. **File Upload**
+   - Users can drag-and-drop or browse for supported files
+   - `FileUpload.tsx` handles:
+     - File validation (type & size)
+     - Upload via `POST` request to `http://localhost:8000/upload`
+     - Display of loading and status messages
 
-## Backend Development
+2. **Report Retrieval**
+   - Backend returns structured EDA JSON
+   - JSON is passed to `ReportViewer.tsx`, triggering dynamic UI updates
 
-The backend handles all the data processing and analysis tasks. Here's how it works:
+3. **Report Display**
+   - Rendered in a clean, tabbed interface:
+     - 📄 **Narrative summary** (LLM Generated)
+     - 📊 **Summary statistics** (row count, columns)
+     - 🕳️ **Missing values** (with visual progress bars)
+     - 📈 **Visualizations** (histograms, bar charts, etc.)
+   - Each type of report content is separated into tabbed components
 
-1. **Data Upload**: Users can upload their datasets (CSV/JSON format). This data is received and validated in the FastAPI backend.
-2. **Data Processing & Multi-Agent System**: The backend analyzes the data using various libraries like Pandas, Scikit-learn, and Seaborn. The multi-agent system orchestrated by LangGraph automates the analysis of missing values, outliers, and other statistics.
-3. **Plot Generation**: For each numerical variable, the backend generates three types of plots:
-    - **Histograms**
-    - **Boxplots**
-    - **QQ Plots**
-4. **Reports**: The backend generates reports in various formats:
-    - **Interactive reports**: Using Plotly or Dash to show data visualizations.
-    - **Static reports**: Markdown, HTML, or PDF reports containing the summary statistics, visualizations, and data insights.
+### File Structure
 
-These reports are then served to the frontend, which displays them to the user.
+```
+src/
+├── components/
+│   ├── FileUpload.tsx                      # Handles file input and upload logic
+│   ├── ReportViewer.tsx                    # Renders the full EDA report view
+│   ├── SummaryAndDistributionTab.tsx       # Tab for overview stats + narrative
+│   └── ...more tabs
+├── pages/
+│   └── TestUpload.tsx                      # Page where upload and viewing happen
+├── types/
+│   └── types.ts                            # Contains the ReportData interface
+```
 
----
+## ⚙️ Backend Development
 
-## Key Features
+The backend handles all data processing and analysis tasks:
 
-- **File Upload and Validation**: Upload CSV or JSON files, and the backend ensures proper data format and validation.
-- **Exploratory Data Analysis (EDA)**:
-  - **Summary statistics**: Automatically generates descriptive statistics (mean, std, min, max, etc.) for numerical columns.
-  - **Data integrity checks**: Identifies missing values, duplicates, and anomalies.
-  - **Visualization Generation**: Generates and serves visualizations like histograms, boxplots, QQ plots, and heatmaps.
-- **Multi-Agent System**: LangGraph automates the decision-making and analysis process, ensuring that all data anomalies and insights are captured efficiently.
-- **Downloadable Reports**: Both static and interactive reports are provided for easy viewing and sharing.
+### Processing Pipeline
 
----
+1. **Data Upload**: Files are received and validated by the FastAPI backend
+2. **Data Processing & Multi-Agent System**: 
+   - The backend analyzes the data using Pandas, Scikit-learn, and Seaborn
+   - The LangGraph multi-agent system orchestrates:
+     - Analysis of missing values and outliers
+     - Generation of descriptive statistics
+     - Creation of appropriate visualizations
+     - Production of narrative insights
 
-## Detailed Steps Taken
+3. **Visualization Generation**: For each numerical variable, multiple visualizations are created:
+   - Histograms for distribution analysis
+   - Boxplots for outlier detection
+   - QQ Plots for normality assessment
+   - Correlation heatmaps for relationship identification
 
-### 1. **Frontend Development**
-   - **File Upload**: Created an upload interface where users can drag-and-drop CSV or JSON files.
-   - **State Management**: Managed the state using React's Context API to store the file data and responses.
-   - **Data Display**: Developed components to display summary statistics and visualizations in an organized and clean format:
-     - **SummaryTab** for showing descriptive statistics.
-     - **VisualizationsTab** for displaying generated plots (Histogram, Boxplot, QQ Plot) and the correlation heatmap.
-     - Used a **Card-based layout** to present different data points and stats.
-   - **Tabs for Numerical Variables**: Designed tabs for each numerical variable, enabling users to click through and view associated plots (histogram, boxplot, QQ plot).
-   - **Grid Layout for Plots**: For each tab, organized the three plots into a grid layout, allowing users to compare the visualizations side by side.
+4. **Report Generation**: The backend creates:
+   - Interactive reports using Plotly
+   - Static reports in markdown, HTML, or PDF formats
 
-### 2. **Backend Development**
-   - **FastAPI Endpoints**: Set up multiple endpoints to handle the data analysis and plotting tasks:
-     - **POST /upload**: Accepts the dataset and initiates the analysis.
-     - **GET /summary**: Returns the summary statistics in a structured format.
-     - **GET /visualizations**: Serves the path of generated images (plots) stored in a static folder.
-   - **Data Analysis**:
-     - Used **Pandas** for data manipulation (handling missing values, outliers).
-     - Generated summary statistics using built-in Pandas functions.
-     - Used **Seaborn** and **Matplotlib** to generate histograms, boxplots, and QQ plots.
-     - Saved these visualizations as PNG files in a static directory for easy retrieval.
+## 🔑 Key Features
 
----
+- **File Upload and Validation**: Support for multiple data formats with automatic validation
+- **Comprehensive EDA**:
+  - **Summary statistics**: Automatically generates descriptive statistics for numerical columns
+  - **Data integrity checks**: Identifies missing values, duplicates, and anomalies
+  - **Visualization Generation**: Creates appropriate visualizations based on data types
+- **Multi-Agent Intelligence**: LangGraph automates the decision-making and analysis process
+
+
+## 🛠️ Implementation Details
+
+### Frontend Implementation
+- **File Upload Interface**: Drag-and-drop functionality with progress indicators
+- **State Management**: React Context API for storing file data and responses
+- **Responsive Components**: 
+  - SummaryTab for descriptive statistics
+  - VisualizationsTab for displaying generated plots
+  - Card-based layout for presenting data points and stats
+- **Interactive Elements**: Tabbed interface with grid layouts for comparing visualizations
+
+### Backend Implementation
+- **FastAPI Endpoints**:
+  - `POST /upload`: Accepts datasets and initiates analysis
+  - `GET /summary`: Returns structured summary statistics
+  - `GET /visualizations`: Serves generated visualizations
+- **Data Analysis Pipeline**:
+  - Pandas for data manipulation and handling missing values
+  - Statistical analysis for outlier detection and correlation assessment
+  - Visualization generation with Seaborn, Matplotlib, and Plotly
