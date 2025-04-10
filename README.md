@@ -143,3 +143,27 @@ The backend handles all data processing and analysis tasks:
   - Pandas for data manipulation and handling missing values
   - Statistical analysis for outlier detection and correlation assessment
   - Visualization generation with Seaborn, Matplotlib, and Plotly
+
+
+## 📝 Future ToDo List
+
+### Enhanced Functionality
+- **Interactive Data Cleaning**: Add agent-guided data cleaning suggestions and actions
+- **Time Series Analysis**: Implement specialized agents for time series data detection and visualization
+- **Categorical Data Analysis**: Expand capabilities for more comprehensive categorical variable handling
+
+### Technical Improvements
+- **Model Fine-tuning**: Train specialized models for improved domain-specific insights
+- **Caching System**: Implement caching for faster repeat analysis of large datasets
+- **Parallel Processing**: Optimize for multi-thread processing of large datasets
+
+### User Experience
+- **Custom Report Builder**: Allow users to select which analyses and visualizations to include in reports
+- **Data Chat Interface**: Implement conversational interface for asking questions about the dataset
+- **Insight Bookmarking**: Enable users to save and annotate important findings
+
+### Infrastructure
+- **Containerization**: Create Docker setup for easy deployment
+- **API Documentation**: Complete OpenAPI documentation with examples
+- **Testing Suite**: Implement comprehensive test coverage for all components
+
