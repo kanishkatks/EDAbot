@@ -1,6 +1,6 @@
 # 🧠 EDAtool — Multi-Agent LLM-Powered Exploratory Data Analysis
 
-From messy CSV files to clear, insightful reports — in minutes.  
+From messy CSV files to clear, insightful reports in minutes.  
 **EDAtool** is an intelligent, agentic pipeline that transforms raw datasets into dynamic EDA summaries using the power of LLMs and a multi-agent architecture.
 
 ## 🚀 Features
