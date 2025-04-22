@@ -16,3 +16,6 @@ langchain-core
 langchain-openai
 notebook
 langgraph-cli[inmem]
+numpy
+openai
+statsmodels
