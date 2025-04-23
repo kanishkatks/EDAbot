@@ -14,7 +14,7 @@ from scipy.fft import fft, fftfreq
 
 
 # Ensure static directory exists for saving plots
-os.makedirs("static", exist_ok=True)
+os.makedirs("static", exist_ok=True) ## comment out for AWS
 
 ### 1. Define State Model ###
 class EDAState(BaseModel):
@@ -66,10 +66,10 @@ def validate_data(state: EDAState) -> EDAState:
     cyclical_cols = detect_cyclical_numeric_with_fft(df)
 
     state.validation = {
-        "missing_values": df.isnull().sum().to_dict(),
-        "duplicate_rows": df.duplicated().sum(),
-        "suspicious_date_columns": suspicious_date_columns,
-        "suspected_cyclical_columns": cyclical_cols
+        "missingValues": df.isnull().sum().to_dict(),
+        "duplicateRows": df.duplicated().sum(),
+        "suspectedDate": suspicious_date_columns,
+        "suspectedCylical": cyclical_cols
 
     }
     return state
@@ -183,7 +183,7 @@ def generate_narrative(state: EDAState) -> EDAState:
         response = client.responses.create(
             model="gpt-3.5-turbo",
             input=[
-                {"role": "system", "content": "You are an expert data scientist specialized in EDA and data insights."},
+                {"role": "system", "content": "You are an expert data scientist specialized in Exploratory Data Analysis and data insights."},
                 {"role": "user", "content": prompt}
             ],
            max_output_tokens= 300

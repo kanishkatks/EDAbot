@@ -1,5 +1,5 @@
 #      Slim version
-FROM python:3.10-slim
+FROM python:3.11-slim
 
 # Copy everything we need into the image
 COPY edabot edabot
@@ -14,4 +14,4 @@ RUN pip install .
 
 RUN mkdir /static
 
-CMD uvicorn api.fast:app --host 0.0.0.0 --port $PORT
+CMD uvicorn api.fast:app --host 0.0.0.0 --port 8000
