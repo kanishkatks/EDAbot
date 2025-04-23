@@ -7,7 +7,7 @@ from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from edabot.eda_multiagent_pipeline import run_eda
-from mangum import Mangum
+
 
 
 app = FastAPI()
