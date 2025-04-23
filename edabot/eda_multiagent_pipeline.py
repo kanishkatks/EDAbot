@@ -14,7 +14,7 @@ from scipy.fft import fft, fftfreq
 
 
 # Ensure static directory exists for saving plots
-os.makedirs("static", exist_ok=True) ## comment out for AWS
+os.makedirs("static", exist_ok=True)
 
 ### 1. Define State Model ###
 class EDAState(BaseModel):
@@ -68,8 +68,8 @@ def validate_data(state: EDAState) -> EDAState:
     state.validation = {
         "missingValues": df.isnull().sum().to_dict(),
         "duplicateRows": df.duplicated().sum(),
-        "suspectedDate": suspicious_date_columns,
-        "suspectedCylical": cyclical_cols
+        "suspiciousDate": suspicious_date_columns,
+        "suspectedCyclical": cyclical_cols
 
     }
     return state
@@ -95,7 +95,7 @@ def create_visualizations(state: EDAState) -> EDAState:
     """Creates visualizations and saves them as images."""
     df = state.data
     num_cols = df.select_dtypes(include=["number"]).columns
-    plot_paths = []
+    plot_paths = {}
 
     # Ensure static directory exists
     os.makedirs("static", exist_ok=True)
@@ -117,7 +117,30 @@ def create_visualizations(state: EDAState) -> EDAState:
         plot_path = f"static/{col}_plots.png"
         plt.savefig(plot_path)
         plt.close()
-        plot_paths.append(plot_path)
+        plot_paths[f"{col}"] = plot_path
+
+        plt.figure(figsize=(10, 6))
+        sns.histplot(df[col], bins=20, kde=True)
+        plt.title(f"Histogram of {col}")
+        plt.savefig(f"static/{col}_hist.png")
+        plt.close()
+        plot_paths[f"{col}_hist"] = f"static/{col}_hist.png"
+
+        plt.figure(figsize=(10, 6))
+        sns.boxplot(data=df, x=col)
+        plt.title(f"Boxplot of {col}")
+        plt.savefig(f"static/{col}_boxplot.png")
+        plt.close()
+        plot_paths[f"{col}_boxplot"] = f"static/{col}_boxplot.png"
+
+        plt.figure(figsize=(10, 6))
+        sm.qqplot(df[col], line='s')
+        plt.title(f"QQ Plot of {col}")
+        plt.savefig(f"static/{col}_qqplot.png")
+        plt.close()
+        plot_paths[f"{col}_qqplot"] = f"static/{col}_qqplot.png"
+
+
 
     # Generate correlation heatmap
     if len(num_cols) > 1:  # Only create heatmap if multiple numeric columns exist
@@ -127,9 +150,9 @@ def create_visualizations(state: EDAState) -> EDAState:
         heatmap_path = "static/correlation_heatmap.png"
         plt.savefig(heatmap_path)
         plt.close()
-        plot_paths.append(heatmap_path)
+        plot_paths["correlation_heatmap"] = heatmap_path
 
-    state.visualizations = {"plots": plot_paths}
+    state.visualizations = plot_paths
     return state
 
 def detect_anomalies(state: EDAState) -> EDAState:
@@ -166,14 +189,23 @@ def generate_narrative(state: EDAState) -> EDAState:
     """
     # Construct the prompt using your EDA results.
     prompt = (
-        "Based on the following EDA results, provide a concise narrative explanation in 300 words or less:\n\n"
-        f"Validation: {state.validation}\n\n"
-        f"Summary_info: {state.info}\n\n"
-        f"Summary: {state.summary}\n\n"
-        f"Anomalies: {state.anomalies}\n\n"
+            "Based on the following EDA results, provide a concise narrative explanation in 250 words or less. "
+            "Please structure your response in bullet points using HTML tags as plain text:\n\n"
+            f"Validation: {state.validation}\n\n"
+            f"Summary Information: {state.info}\n\n"
+            f"Summary Statistics: {state.summary}\n\n"
+            f"Anomalies: {state.anomalies}\n\n"
 
-        "Explain any interesting trends, potential issues, and suggestions for further analysis."
-    )
+            "In your explanation, address the following:\n"
+            "<ul>\n"
+            "<li>Any interesting trends or patterns in the data.</li>\n"
+            "<li>Potential data quality issues or outliers.</li>\n"
+            "<li>Suggestions for further analysis or next steps.</li>\n"
+            "</ul>\n\n"
+
+            "Ensure that the response is formatted as a plain string, with HTML tags (e.g., <ul>, <li>) included as part of the text, "
+            "so it can be included in a JSON response and displayed as a plain string with HTML tags."
+        )
 
     try:
         client = OpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
@@ -183,7 +215,7 @@ def generate_narrative(state: EDAState) -> EDAState:
         response = client.responses.create(
             model="gpt-3.5-turbo",
             input=[
-                {"role": "system", "content": "You are an expert data scientist specialized in Exploratory Data Analysis and data insights."},
+                {"role": "system", "content": "You are an expert data scientist specialized in EDA and data insights."},
                 {"role": "user", "content": prompt}
             ],
            max_output_tokens= 300

@@ -178,3 +178,5 @@ cython_debug/
 
 .env.yaml
 .env
+*.yaml
+.env.yaml
