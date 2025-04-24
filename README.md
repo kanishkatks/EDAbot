@@ -1,4 +1,4 @@
-# 🧠 EDAtool — Multi-Agent LLM-Powered Exploratory Data Analysis
+# 🧠 Smart EDAtool: Multi-Agent LLM-Powered Exploratory Data Analysis
 
 From messy CSV files to clear, insightful reports in minutes.  
 **EDAtool** is an intelligent, agentic pipeline that transforms raw datasets into dynamic EDA summaries using the power of LLMs and a multi-agent architecture.
@@ -101,7 +101,7 @@ The backend handles all data processing and analysis tasks:
      - Analysis of missing values and outliers
      - Generation of descriptive statistics
      - Creation of appropriate visualizations
-     - Production of narrative insights
+     - Production of narrative insights using LLM
 
 3. **Visualization Generation**: For each numerical variable, multiple visualizations are created:
    - Histograms for distribution analysis
@@ -110,8 +110,7 @@ The backend handles all data processing and analysis tasks:
    - Correlation heatmaps for relationship identification
 
 4. **Report Generation**: The backend creates:
-   - Interactive reports using Plotly
-   - Static reports in markdown, HTML, or PDF formats
+      - Static reports in  PDF formats
 
 ## 🔑 Key Features
 
@@ -142,7 +141,7 @@ The backend handles all data processing and analysis tasks:
 - **Data Analysis Pipeline**:
   - Pandas for data manipulation and handling missing values
   - Statistical analysis for outlier detection and correlation assessment
-  - Visualization generation with Seaborn, Matplotlib, and Plotly
+  - Visualization generation with Seaborn, Matplotlib
 
 
 ## 📝 Future ToDo List
@@ -163,7 +162,6 @@ The backend handles all data processing and analysis tasks:
 - **Insight Bookmarking**: Enable users to save and annotate important findings
 
 ### Infrastructure
-- **Containerization**: Create Docker setup for easy deployment
 - **API Documentation**: Complete OpenAPI documentation with examples
 - **Testing Suite**: Implement comprehensive test coverage for all components
 
